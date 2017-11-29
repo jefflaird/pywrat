@@ -24,9 +24,6 @@ def pywrat(month,year):
   APP_user_huc_con = pd.read_csv('input_data/APP_user_huc_connectivity.csv', dtype={'HUC_12': object})
   APP_user_huc_con.set_index('HUC_12', inplace=True)
 
-  ##Still need to add in: Buffer flows, Environmental flows, Return flows: 3 methods, 
-  ##Add in or make separate sheet for hydrologic inputs/manipulation
-
   ######################################################################################
   ####Riparian LP
 
@@ -79,10 +76,6 @@ def pywrat(month,year):
     connected_hucs = CM.index[CM[k] == 1].tolist()
     for j in connected_hucs:
       ripLP += p_catch[j] >= p_catch[k]
-      # MAYBE CHECK: is connectivity matrix set up so that "row j" is downstream of "column k"?
-
-  #create rip availble flow to avoid infeasibility
-  # rip_available = {}
 
   #sum of allocation, per huc, cannot be greater than available
   for j in hucs:
@@ -111,10 +104,10 @@ def pywrat(month,year):
 
   rip_results = pd.DataFrame.from_dict(rip_results, orient='index')
   rip_results.columns = ['p_catch']
-  rip_results.to_csv('BAD_results/%s_riparian_p_catchBAD.csv' % (outputdate))
+  rip_results.to_csv('results/%s_riparian_p_catch.csv' % (outputdate))
 
   # # now here, do postprocessing stuff to get per-user allocations
-  # #multiply p_catch to user demand based on waht huc they are in
+  # #multiply p_catch to user demand based on their huc
 
 
   #######################################################################################
@@ -189,5 +182,5 @@ def pywrat(month,year):
 
   app_results = pd.DataFrame.from_dict(app_results, orient='index')
   app_results.columns = ['allocation']
-  app_results.to_csv('BAD_results/%s_app_allocationBAD.csv' % (outputdate))
+  app_results.to_csv('results/%s_app_allocation.csv' % (outputdate))
 
