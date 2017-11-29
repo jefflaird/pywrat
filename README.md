@@ -4,6 +4,7 @@ This is  a python version of the Drought Water Rights Allocation Tool as develop
 
 To run the model (currently only the Sacramento model):
 - Clone the repository
-- In the pywrat.py file, you can edit/specify your which results to output and where they will be stored (lines 113 and 191)
+- In the pywrat.py file, you can edit/specify your which results to output and where they will be stored (lines 106 and 184)
+  - Right now, outputs are decision variables (P-catchments for Riparian LP, and User allocations for Appropriative LP)
 - In the main.py file, chose the date or date range over which you would like to run
 - Check out your results!
