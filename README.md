@@ -8,3 +8,7 @@ To run the model (currently only the Sacramento model):
   - Right now, outputs are decision variables (P-catchments for Riparian LP, and User allocations for Appropriative LP)
 - In the main.py file, chose the date or date range over which you would like to run
 - Check out your results!
+
+More about pywrat (for those familiar with DWRAT):
+This script performs the same functions that DWRAT does by importing the prebuilt hydrology predictions/measurements, connectivity matrices, user demand data, and the matrices from the RipLP and AppLP sheets. 
+This is directly used by PuLP to calculate p-catchment values for the RipLP and then allocations for the AppLP. 
