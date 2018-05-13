@@ -2,6 +2,8 @@
 
 from pulp import *
 import pandas as pd
+import numpy as np
+import operator
 
 def pywrat(month,year):
   #Load user data
@@ -85,12 +87,12 @@ def pywrat(month,year):
     ripLP += lpSum([rip_allocation[i] for i in users_in_huc]) <= flow[j]
     # CHECK: use "flow" or update to include environmental flow fractions
     # don't need to index connectivity in the obj function because we know it's = 1
-      
+
   # allocation must be greater than public health and safety (phs) requirements
   # NOTE add PHS data later when we have it
   # for i in users:
   #   allocation[i] >= phs[i]
-      
+
   # The problem is solved using PuLP's choice of Solver
   ripLP.solve()
 
@@ -98,17 +100,67 @@ def pywrat(month,year):
   print('Objective = ', value(ripLP.objective))
 
   # export results to file
-  rip_results = {}
+  huc_results = {}
   for j in hucs:
-    rip_results[j] = p_catch[j].varValue
+    huc_results[j] = p_catch[j].varValue
 
-  rip_results = pd.DataFrame.from_dict(rip_results, orient='index')
-  rip_results.columns = ['p_catch']
-  rip_results.to_csv('results/%s_riparian_p_catch.csv' % (outputdate))
+  # huc_results = pd.DataFrame.from_dict(huc_results, orient='index')
+  # huc_results.columns = ['p_catch']
 
-  # # now here, do postprocessing stuff to get per-user allocations
-  # #multiply p_catch to user demand based on their huc
+  ripres = pd.DataFrame(rip_users)
+  ripres.columns = ['App ID']
 
+  rip_hucs = rip_statements['HUC_12'].tolist()
+  ripres.insert(1, 'HUC-12', rip_hucs)
+
+  ripres.insert(0, 'Pull Date', timestr)
+
+  ripres_demand = demand.tolist()
+  ripres.insert(3, 'Demand', ripres_demand)
+
+  ripres_allo = [0] * len(rip_hucs)
+  for j in np.arange(len(rip_users)):
+  ripres_allo[j] = huc_results[str(rip_hucs[j])] * ripres_demand[j]
+  ripres.insert(4, 'Allocation', ripres_allo)
+
+  ripres.insert(5, 'Right Type', 'Riparian')
+
+  ripres_active = [0] * len(rip_hucs)
+  for j in np.arange(len(ripres_active)):
+    if ripres_demand[j] == 0:
+      ripres_active[j] = False
+    else:
+      ripres_active[j] = True
+  ripres.insert(6, 'Active?', ripres_active)
+
+  ripres.insert(7, 'File Date', rip_statements['File Date'])
+
+  ripres_short = list(map(operator.sub, ripres_demand, ripres_allo))
+  ripres.insert(8, 'Shortage', ripres_short)
+
+  ripres_short_by_right = [0] * len(rip_hucs)
+  for j in np.arange(len(ripres_active)):
+    if ripres_allo[j] == ripres_demand[j]:
+      ripres_short_by_right[j] = False
+    else:
+      ripres_short_by_right[j] = True
+  ripres.insert(9, 'Active?', ripres_short_by_right)
+
+  ripres_short_by_short = [0] * len(rip_hucs)
+  for j in np.arange(len(ripres_active)):
+    if ripres_allo[j] != ripres_demand[j]:
+      ripres_short_by_short[j] = True
+    else:
+      ripres_short_by_short[j] = False
+  ripres.insert(10, 'Active?', ripres_short_by_short)
+
+  ripres_short_by_health = [0] * len(rip_hucs)
+  ripres.insert(11, 'Active?', ripres_short_by_health)
+
+  #     ripres_HUC_flow = #flow left in HUC (after appropriative? will have to move to end)
+  #     ripres_percentDemand = #ripres_Allocation[j] / ripres_Demand[j]
+
+  rip_results.to_csv('results/%s_riparian_results.csv' % (outputdate))
 
   #######################################################################################
   ##### Appropriative LP
