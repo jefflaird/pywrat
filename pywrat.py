@@ -120,7 +120,7 @@ def pywrat(month,year):
 
   ripres_allo = [0] * len(rip_hucs)
   for j in np.arange(len(rip_users)):
-  ripres_allo[j] = huc_results[str(rip_hucs[j])] * ripres_demand[j]
+    ripres_allo[j] = huc_results[str(rip_hucs[j])] * ripres_demand[j]
   ripres.insert(4, 'Allocation', ripres_allo)
 
   ripres.insert(5, 'Right Type', 'Riparian')
@@ -144,7 +144,7 @@ def pywrat(month,year):
       ripres_short_by_right[j] = False
     else:
       ripres_short_by_right[j] = True
-  ripres.insert(9, 'Active?', ripres_short_by_right)
+  ripres.insert(9, 'Allocation Constrained via Right', ripres_short_by_right)
 
   ripres_short_by_short = [0] * len(rip_hucs)
   for j in np.arange(len(ripres_active)):
@@ -152,15 +152,16 @@ def pywrat(month,year):
       ripres_short_by_short[j] = True
     else:
       ripres_short_by_short[j] = False
-  ripres.insert(10, 'Active?', ripres_short_by_short)
+  ripres.insert(10, 'Allocation Constrained via Shortage', ripres_short_by_short)
 
   ripres_short_by_health = [0] * len(rip_hucs)
-  ripres.insert(11, 'Active?', ripres_short_by_health)
+  ripres.insert(11, 'Allocation Constrained via Public Health', ripres_short_by_health)
 
   #     ripres_HUC_flow = #flow left in HUC (after appropriative? will have to move to end)
   #     ripres_percentDemand = #ripres_Allocation[j] / ripres_Demand[j]
 
-  rip_results.to_csv('results/%s_riparian_results.csv' % (outputdate))
+  ripres.set_index('App ID')
+  ripres.to_csv('results/%s_riparian_resultstest.csv' % (outputdate))
 
   #######################################################################################
   ##### Appropriative LP
@@ -231,8 +232,60 @@ def pywrat(month,year):
   app_results = {}
   for i in app_users:
     app_results[i] = allocation[i].varValue
-
   app_results = pd.DataFrame.from_dict(app_results, orient='index')
   app_results.columns = ['allocation']
-  app_results.to_csv('results/%s_app_allocation.csv' % (outputdate))
 
+  appres = pd.DataFrame(app_users)
+  appres.columns = ['App ID']
+
+  app_hucs = app_statements['HUC_12'].tolist()
+  appres.insert(1, 'HUC-12', app_hucs)
+
+  appres.insert(0, 'Pull Date', timestr)
+
+  appres_demand = demand.tolist()
+  appres.insert(3, 'Demand', appres_demand)
+
+  appres_allo = [0] * len(app_results['allocation'])
+  for j in np.arange(len(app_users)):
+    appres_allo[j] = app_results['allocation'][j]
+  appres.insert(4, 'Allocation', appres_allo)
+  
+  appres_type = [0] * len(app_hucs)
+  # use file date and separate Pre and Post 1914
+  appres.insert(5, 'Right Type', 'Appropriative')
+
+  appres_active = [0] * len(app_hucs)
+  for j in np.arange(len(appres_active)):
+    if appres_demand[j] == 0:
+      appres_active[j] = False
+    else:
+      appres_active[j] = True
+  appres.insert(6, 'Active?', appres_active)
+
+  appres.insert(7, 'File Date', app_statements['File Date'])
+
+  appres_short = list(map(operator.sub, appres_demand, appres_allo))
+  appres.insert(8, 'Shortage', appres_short)
+
+  appres_short_by_right = [0] * len(app_hucs)
+  for j in np.arange(len(appres_active)):
+    if appres_allo[j] == appres_demand[j]:
+      appres_short_by_right[j] = False
+    else:
+      appres_short_by_right[j] = True
+  appres.insert(9, 'Allocation Constrained via Right', appres_short_by_right)
+
+  appres_short_by_short = [0] * len(app_hucs)
+  for j in np.arange(len(appres_active)):
+    if appres_allo[j] != appres_demand[j]:
+      appres_short_by_short[j] = True
+    else:
+      appres_short_by_short[j] = False
+  appres.insert(10, 'Allocation Constrained via Shortage', appres_short_by_short)
+
+  appres_short_by_health = [0] * len(app_hucs)
+  appres.insert(11, 'Allocation Constrained via Public Health', appres_short_by_health)
+
+  appres.set_index('App ID')
+  appres.to_csv('results/%s_app_allocationtest.csv' % (outputdate))
